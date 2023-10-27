@@ -1,0 +1,40 @@
+#cloud-config
+# Create a group
+groups:
+  - hashicorp
+
+write_files:
+  - content: |
+      write-kubeconfig-mode: 0644
+      tls-san:
+        - ${external_ip}
+      token: ${token}
+    path: /etc/rancher/rke2/config.yaml
+
+# Create users, in addition to the users provided by default
+users:
+  - default
+  - name: terraform
+    gecos: terraform
+    shell: /bin/bash
+    primary_group: hashicorp
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: users, admin
+    lock_passwd: false
+    ssh_authorized_keys:
+      - "ssh-rsa ${ssh_key}" # an SSH public key that is authorized
+                      # to connect to this account
+# Run a few commands (update apt's repo indexes and install curl)
+runcmd:
+  - sudo apt-get update
+  - sudo apt install curl apt-transport-https iptables -q -y
+  - curl -sfL https://get.rke2.io | sudo sh -
+  - sudo systemctl enable rke2-server.service
+  - sudo systemctl start rke2-server.service
+  - sudo systemctl status rke2-server.service
+  - mkdir -p /home/${username}/.kube
+  - sudo cp /etc/rancher/rke2/rke2.yaml /home/${username}/.kube/config
+  - "echo 'export KUBECONFIG=/home/${username}/.kube/config' >> /home/${username}/.bash_profile"
+  - "echo 'export PATH=$PATH:/var/lib/rancher/rke2/bin' >> /home/${username}/.bash_profile"
+  - "sudo chown -R ${username}: /home/${username}"
+

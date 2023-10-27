@@ -1,0 +1,69 @@
+version: '3'
+
+dotenv: ['gcp.tfvars']
+
+vars:
+  SSH_CMD: ssh -o "UserKnownHostsFile=/dev/null" -oStrictHostKeyChecking=no
+  B64_DECODE: base64 -D
+  YQ_UCKD: yq '.users[] | select(.name=="default") | .user.client-key-data'
+  YQ_UCCD: yq '.users[] | select(.name=="default") | .user.client-certificate-data'
+  YQ_CA: yq '.clusters[] | select(.name=="default") | .cluster.certificate-authority-data'
+
+tasks:
+  terraform-init:
+    cmds:
+      - "terraform -chdir=./gcp init -upgrade"
+  terraform-output:
+    cmds:
+      - "terraform -chdir=./gcp refresh -var-file=../gcp.tfvars"
+      - "terraform -chdir=./gcp output -json > ./.provisioned_env.json"
+  terraform-plan:
+    cmds:
+      - "terraform -chdir=./gcp plan -var-file=../gcp.tfvars"
+  terraform-apply:
+    cmds:
+      - "terraform -chdir=./gcp apply -var-file=../gcp.tfvars"
+  terraform-destroy:
+    cmds:
+      - "terraform -chdir=./gcp destroy -var-file=../gcp.tfvars"
+  fetch-cluster-kubeconfig:
+    internal: true
+    vars:
+      MASTER_IP:
+        sh: "cat .provisioned_env.json | jq -r '.[].value[] | select(.cluster_name==\"{{.CLUSTER}}\") | .master_addresses[0]'"
+    cmds:
+      - "{{.SSH_CMD}} {{.username}}@{{.MASTER_IP}} 'sudo cat /etc/rancher/rke2/rke2.yaml' > {{.CLUSTER}}-kubeconfig.yaml"
+  kubeconfig:
+    vars:
+      PUBLIC_IP:
+        sh: "cat .provisioned_env.json | jq -r '.[].value[] | select(.cluster_name == \"{{.CLUSTER}}\") | .loadbalancer_ip'"
+    deps:
+      - task: fetch-cluster-kubeconfig
+        vars: { CLUSTER: '{{.CLUSTER}}' }
+    cmds:
+      - defer: rm {{.CLUSTER}}-kubeconfig.yaml
+      - kubectl config set-credentials {{.CLUSTER}}-user --client-certificate=<(cat {{.CLUSTER}}-kubeconfig.yaml | {{.YQ_UCCD}} | {{.B64_DECODE}}) --client-key=<(cat {{.CLUSTER}}-kubeconfig.yaml | {{.YQ_UCKD}} | {{.B64_DECODE}}) --embed-certs=true
+      - kubectl config set-cluster {{.CLUSTER}} --server=https://{{.PUBLIC_IP}}:6443 --certificate-authority=<(cat {{.CLUSTER}}-kubeconfig.yaml | {{.YQ_CA}} | {{.B64_DECODE}}) --embed-certs=true
+      - kubectl config set-context {{.CLUSTER}} --cluster={{.CLUSTER}} --user={{.CLUSTER}}-user
+  all-kubeconfig:
+    vars:
+      CLUSTERS:
+        sh: "cat .provisioned_env.json | jq -r '.[].value[].cluster_name' | tr '\n' ' '"
+    cmds:
+      - for: { var: CLUSTERS }
+        task: kubeconfig
+        vars: { CLUSTER: '{{.ITEM}}' }
+  check-cluster-connection:
+      - kubectl --context {{.CLUSTER}} get nodes
+  helm_repo_update:
+    cmds:
+      - helm repo update
+  deploy-stackstate-agent:
+    vars:
+      CLUSTERS:
+        sh: "cat .provisioned_env.json | jq -r '.[].value[].cluster_name' | tr '\n' ' '"
+    dep:
+      - task: helm_repo_update
+    cmds:
+      - for: { var: CLUSTERS }
+        cmd: helm upgrade --install --kube-context {{.ITEM}} --namespace stackstate --create-namespace --set-string 'stackstate.apiKey'="{{.sts_api_key}}" --set-string 'stackstate.cluster.name'='{{.ITEM}}' --set-string 'stackstate.url'="{{.sts_url}}/receiver/stsAgent" --set 'logsAgent.enabled'='true' --set 'nodeAgent.skipKubeletTLSVerify'=true stackstate-k8s-agent stackstate/stackstate-k8s-agent

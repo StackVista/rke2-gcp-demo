@@ -1,0 +1,7 @@
+*.tfvars
+.provisioned_env.json
+*-kubeconfig.yaml
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
