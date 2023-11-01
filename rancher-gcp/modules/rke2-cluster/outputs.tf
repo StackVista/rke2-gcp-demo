@@ -6,8 +6,12 @@ output "worker_addresses" {
   value = google_compute_instance.rke2-worker[*].network_interface[0].access_config[0].nat_ip
 }
 
-output "loadbalancer_ip" {
+output "master_loadbalancer_ip" {
   value = google_compute_address.rke2-lb-ip.address
+}
+
+output "worker_loadbalancer_ip" {
+  value = google_compute_address.rke2-lb-ip-workers.address
 }
 
 output "cluster_name" {

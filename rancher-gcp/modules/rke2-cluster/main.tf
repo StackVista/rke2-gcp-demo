@@ -1,6 +1,9 @@
 resource "google_compute_address" "rke2-lb-ip" {
   name = "${var.name_prefix}-loadbalancer-ip"
 }
+resource "google_compute_address" "rke2-lb-ip-workers" {
+  name = "${var.name_prefix}-loadbalancer-ip-workers"
+}
 
 resource "google_compute_firewall" "allow-to-rancher" {
   name    = "${var.name_prefix}-allow-to-rancher"
@@ -28,9 +31,18 @@ resource "google_compute_forwarding_rule" "rke2-lb" {
   name        = "${var.name_prefix}-loadbalancer"
   ip_address  = google_compute_address.rke2-lb-ip.address
   target      = google_compute_target_pool.rke2-masters.self_link
-  port_range  = "6443"
+  port_range  = "80-65535"
   ip_protocol = "TCP"
 }
+
+resource "google_compute_forwarding_rule" "rke2-lb-workers" {
+  name        = "${var.name_prefix}-loadbalancer-workers"
+  ip_address  = google_compute_address.rke2-lb-ip-workers.address
+  target      = google_compute_target_pool.rke2-workers.self_link
+  port_range  = "80-65535"
+  ip_protocol = "TCP"
+}
+
 resource "google_compute_http_health_check" "rke2-health-check" {
   name         = "${var.name_prefix}-kubernetes"
   request_path = "/healthz"
@@ -43,6 +55,12 @@ resource "google_compute_target_pool" "rke2-masters" {
   name             = "${var.name_prefix}-masters"
   instances        = google_compute_instance.rke2-master[*].self_link
   health_checks    = [google_compute_http_health_check.rke2-health-check.name]
+  session_affinity = "CLIENT_IP"
+}
+
+resource "google_compute_target_pool" "rke2-workers" {
+  name             = "${var.name_prefix}-workers"
+  instances        = google_compute_instance.rke2-worker[*].self_link
   session_affinity = "CLIENT_IP"
 }
 
