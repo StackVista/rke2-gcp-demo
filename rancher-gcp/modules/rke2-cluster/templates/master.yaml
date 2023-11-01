@@ -1,0 +1,18 @@
+#cloud-config
+# Create a group
+groups:
+  - hashicorp
+
+# Create users, in addition to the users provided by default
+users:
+  - default
+  - name: terraform
+    gecos: terraform
+    shell: /bin/bash
+    primary_group: hashicorp
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: users, admin
+    lock_passwd: false
+    ssh_authorized_keys:
+      - "ssh-rsa ${ssh_key}" # an SSH public key that is authorized
+                      # to connect to this account

@@ -1,0 +1,9 @@
+stackstate:
+  apiKey: ${sts_api_key}
+  cluster:
+    name: ${sts_cluster_name}
+  url: ${sts_url}/receiver/stsAgent
+logsAgent:
+  enabled: true
+nodeAgent:
+  skipKubeletTLSVerify: true

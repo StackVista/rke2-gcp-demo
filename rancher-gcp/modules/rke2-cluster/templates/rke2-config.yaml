@@ -1,0 +1,3 @@
+tls-san:
+  - ${lb_ip_address}
+  - ${fqdn}
