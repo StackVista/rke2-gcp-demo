@@ -1,0 +1,49 @@
+all:
+  securityCapabilitiesDisabled: true
+priority: 50
+loadgen:
+  enabled: false
+catalogue:
+  enabled: false
+  demoScenarioSimulation:
+    enabled: false
+shipping:
+  enabled: true
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hostname: shipping.34.147.75.238.sslip.io
+    annotations:
+      # 46.137.155.149 playground-webshop-vpc-eu-west-1b
+      # 54.171.253.70 playground-fulfillment-vpc-eu-west-1b
+      # nginx.ingress.kubernetes.io/whitelist-source-range: 10.10.0.0/24
+      # nginx.ingress.kubernetes.io/ssl-redirect: "false"
+carts:
+  enabled: false
+frontend:
+  enabled: false
+orders:
+  enabled: false
+payment:
+  enabled: true
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hostname: payment.34.147.75.238.sslip.io
+    annotations:
+      # 46.137.155.149 playground-webshop-vpc-eu-west-1b
+      # 54.171.253.70 playground-fulfillment-vpc-eu-west-1b
+      # nginx.ingress.kubernetes.io/whitelist-source-range: 10.10.0.0/24
+      # nginx.ingress.kubernetes.io/ssl-redirect: "false"
+user:
+  enabled: false
+queueMaster:
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+rabbitmq:
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled

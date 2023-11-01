@@ -49,6 +49,7 @@ module "rke2-cluster" {
   ssh_key         = tls_private_key.ssh_key.public_key_openssh
   ssh_private_key = tls_private_key.ssh_key.private_key_pem
   username        = var.username
+  machine_type    = var.machine_type
   providers = {
     rancher2 = rancher2.admin
   }

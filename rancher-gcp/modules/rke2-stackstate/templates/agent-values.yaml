@@ -7,3 +7,5 @@ logsAgent:
   enabled: true
 nodeAgent:
   skipKubeletTLSVerify: true
+httpHeaderInjectorWebhook:
+  enabled: true

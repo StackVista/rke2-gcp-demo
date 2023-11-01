@@ -7,7 +7,7 @@ output "worker_addresses" {
 }
 
 output "master_loadbalancer_ip" {
-  value = google_compute_address.rke2-lb-ip.address
+  value = google_compute_address.rke2-lb-ip-masters.address
 }
 
 output "worker_loadbalancer_ip" {

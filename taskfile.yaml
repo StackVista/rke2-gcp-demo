@@ -8,62 +8,49 @@ vars:
   YQ_UCKD: yq '.users[] | select(.name=="default") | .user.client-key-data'
   YQ_UCCD: yq '.users[] | select(.name=="default") | .user.client-certificate-data'
   YQ_CA: yq '.clusters[] | select(.name=="default") | .cluster.certificate-authority-data'
+  YQ_CSERVER: yq '.clusters[] | select(.name=="default") | .cluster.server'
+  DIR: ./rancher-gcp
 
 tasks:
   terraform-init:
     cmds:
-      - "terraform -chdir=./gcp init -upgrade"
+      - "terraform -chdir={{.DIR}} init -upgrade"
   terraform-output:
     cmds:
-      - "terraform -chdir=./gcp refresh -var-file=../gcp.tfvars"
-      - "terraform -chdir=./gcp output -json > ./.provisioned_env.json"
+      - "terraform -chdir={{.DIR}} refresh -var-file=../gcp.tfvars"
+      - "terraform -chdir={{.DIR}} output -json > ./.provisioned_env.json"
   terraform-plan:
     cmds:
-      - "terraform -chdir=./gcp plan -var-file=../gcp.tfvars"
+      - "terraform -chdir={{.DIR}} plan -var-file=../gcp.tfvars"
   terraform-apply:
     cmds:
-      - "terraform -chdir=./gcp apply -var-file=../gcp.tfvars"
+      - "terraform -chdir={{.DIR}} apply -var-file=../gcp.tfvars"
   terraform-destroy:
     cmds:
-      - "terraform -chdir=./gcp destroy -var-file=../gcp.tfvars"
-  fetch-cluster-kubeconfig:
-    internal: true
-    vars:
-      MASTER_IP:
-        sh: "cat .provisioned_env.json | jq -r '.[].value[] | select(.cluster_name==\"{{.CLUSTER}}\") | .master_addresses[0]'"
-    cmds:
-      - "{{.SSH_CMD}} {{.username}}@{{.MASTER_IP}} 'sudo cat /etc/rancher/rke2/rke2.yaml' > {{.CLUSTER}}-kubeconfig.yaml"
+      - "terraform -chdir={{.DIR}} destroy -var-file=../gcp.tfvars"
   kubeconfig:
-    vars:
-      PUBLIC_IP:
-        sh: "cat .provisioned_env.json | jq -r '.[].value[] | select(.cluster_name == \"{{.CLUSTER}}\") | .loadbalancer_ip'"
-    deps:
-      - task: fetch-cluster-kubeconfig
-        vars: { CLUSTER: '{{.CLUSTER}}' }
     cmds:
-      - defer: rm {{.CLUSTER}}-kubeconfig.yaml
-      - kubectl config set-credentials {{.CLUSTER}}-user --client-certificate=<(cat {{.CLUSTER}}-kubeconfig.yaml | {{.YQ_UCCD}} | {{.B64_DECODE}}) --client-key=<(cat {{.CLUSTER}}-kubeconfig.yaml | {{.YQ_UCKD}} | {{.B64_DECODE}}) --embed-certs=true
-      - kubectl config set-cluster {{.CLUSTER}} --server=https://{{.PUBLIC_IP}}:6443 --certificate-authority=<(cat {{.CLUSTER}}-kubeconfig.yaml | {{.YQ_CA}} | {{.B64_DECODE}}) --embed-certs=true
+      - kubectl config set-credentials {{.CLUSTER}}-user --client-certificate=<(cat {{.DIR}}/{{.CLUSTER}}_kubeconfig.yaml | {{.YQ_UCCD}} | {{.B64_DECODE}}) --client-key=<(cat {{.DIR}}/{{.CLUSTER}}_kubeconfig.yaml | {{.YQ_UCKD}} | {{.B64_DECODE}}) --embed-certs=true
+      - kubectl config set-cluster {{.CLUSTER}} --server=<(cat {{.DIR}}/{{.CLUSTER}}_kubeconfig.yaml | {{.YQ_CSERVER}}) --certificate-authority=<(cat {{.DIR}}/{{.CLUSTER}}_kubeconfig.yaml | {{.YQ_CA}} | {{.B64_DECODE}}) --embed-certs=true
       - kubectl config set-context {{.CLUSTER}} --cluster={{.CLUSTER}} --user={{.CLUSTER}}-user
   all-kubeconfig:
     vars:
       CLUSTERS:
-        sh: "cat .provisioned_env.json | jq -r '.[].value[].cluster_name' | tr '\n' ' '"
+        sh: "cat .provisioned_env.json | jq -r '.\"rke2-clusters\".value[].cluster_name, .\"rancher-cluster\".value.cluster_name' | tr '\n' ' '"
     cmds:
       - for: { var: CLUSTERS }
         task: kubeconfig
         vars: { CLUSTER: '{{.ITEM}}' }
   check-cluster-connection:
       - kubectl --context {{.CLUSTER}} get nodes
-  helm_repo_update:
-    cmds:
-      - helm repo update
-  deploy-stackstate-agent:
+  deploy-sock-shop:
     vars:
-      CLUSTERS:
-        sh: "cat .provisioned_env.json | jq -r '.[].value[].cluster_name' | tr '\n' ' '"
-    dep:
-      - task: helm_repo_update
+      CLUSTER_0:
+        sh: "cat .provisioned_env.json | jq -r '.\"rke2-clusters\".value[0].cluster_name'"
+      PUBLIC_IP_1:
+        sh: "cat .provisioned_env.json | jq -r '.\"rke2-clusters\".value[1].worker_loadbalancer_ip'"
+      CLUSTER_1:
+        sh: "cat .provisioned_env.json | jq -r '.\"rke2-clusters\".value[1].cluster_name'"
     cmds:
-      - for: { var: CLUSTERS }
-        cmd: helm upgrade --install --kube-context {{.ITEM}} --namespace stackstate --create-namespace --set-string 'stackstate.apiKey'="{{.sts_api_key}}" --set-string 'stackstate.cluster.name'='{{.ITEM}}' --set-string 'stackstate.url'="{{.sts_url}}/receiver/stsAgent" --set 'logsAgent.enabled'='true' --set 'nodeAgent.skipKubeletTLSVerify'=true stackstate-k8s-agent stackstate/stackstate-k8s-agent
+      - helm upgrade --install --kubeconfig {{.DIR}}/{{.CLUSTER_1}}_kubeconfig.yaml --namespace sock-shop --create-namespace --values sock-shop/values-fulfillment.yaml --set-string 'payment.ingress.hostname'='payment.{{.PUBLIC_IP_1}}.sslip.io'  --set-string 'shipping.ingress.hostname'='shipping.{{.PUBLIC_IP_1}}.sslip.io' sock-shop stackstate-internal/sock-shop
+      - helm upgrade --install --kubeconfig {{.DIR}}/{{.CLUSTER_0}}_kubeconfig.yaml --namespace sock-shop --create-namespace --values sock-shop/values-shop.yaml --set-string 'orders.components.paymentHost'='payment.{{.PUBLIC_IP_1}}.sslip.io'  --set-string 'orders.components.shippingHost'='shipping.{{.PUBLIC_IP_1}}.sslip.io' sock-shop stackstate-internal/sock-shop

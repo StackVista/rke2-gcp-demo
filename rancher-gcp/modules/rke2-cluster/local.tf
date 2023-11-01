@@ -3,6 +3,7 @@ locals {
 }
 
 resource "local_file" "kubeconfig_yaml" {
-  filename = format("%s/%s_%s", path.root, var.name_prefix, "kubeconfig.yaml")
-  content  = ssh_resource.retrieve_kubeconfig.result
+  file_permission = "0600"
+  filename        = format("%s/%s_%s", path.root, var.name_prefix, "kubeconfig.yaml")
+  content         = ssh_resource.retrieve_kubeconfig.result
 }

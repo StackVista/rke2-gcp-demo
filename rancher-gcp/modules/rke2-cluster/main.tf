@@ -1,5 +1,5 @@
-resource "google_compute_address" "rke2-lb-ip" {
-  name = "${var.name_prefix}-loadbalancer-ip"
+resource "google_compute_address" "rke2-lb-ip-masters" {
+  name = "${var.name_prefix}-loadbalancer-ip-masters"
 }
 resource "google_compute_address" "rke2-lb-ip-workers" {
   name = "${var.name_prefix}-loadbalancer-ip-workers"
@@ -27,11 +27,11 @@ resource "google_service_account" "rke2-sa" {
   display_name = "Service Account for provisioned RKE2 cluster"
 }
 
-resource "google_compute_forwarding_rule" "rke2-lb" {
-  name        = "${var.name_prefix}-loadbalancer"
-  ip_address  = google_compute_address.rke2-lb-ip.address
+resource "google_compute_forwarding_rule" "rke2-lb-masters" {
+  name        = "${var.name_prefix}-loadbalancer-masters"
+  ip_address  = google_compute_address.rke2-lb-ip-masters.address
   target      = google_compute_target_pool.rke2-masters.self_link
-  port_range  = "80-65535"
+  port_range  = "80-6443"
   ip_protocol = "TCP"
 }
 
@@ -39,15 +39,17 @@ resource "google_compute_forwarding_rule" "rke2-lb-workers" {
   name        = "${var.name_prefix}-loadbalancer-workers"
   ip_address  = google_compute_address.rke2-lb-ip-workers.address
   target      = google_compute_target_pool.rke2-workers.self_link
-  port_range  = "80-65535"
+  port_range  = "80-443"
   ip_protocol = "TCP"
 }
 
 resource "google_compute_http_health_check" "rke2-health-check" {
-  name         = "${var.name_prefix}-kubernetes"
-  request_path = "/healthz"
-  description  = "The health check for Kubernetes API server"
-  host         = "kubernetes.default.svc.cluster.local"
+  name                = "${var.name_prefix}-kubernetes"
+  request_path        = "/healthz"
+  description         = "The health check for Kubernetes API server"
+  port                = 10256
+  healthy_threshold   = 1
+  unhealthy_threshold = 3
 }
 
 
@@ -69,8 +71,8 @@ resource "rancher2_cluster_v2" "rke2-cluster" {
   kubernetes_version = local.rke2_version
   rke_config {
     machine_global_config = templatefile("${path.module}/templates/rke2-config.yaml", {
-      lb_ip_address = google_compute_address.rke2-lb-ip.address
-      fqdn          = "https://${google_compute_address.rke2-lb-ip.address}.sslip.io"
+      lb_ip_address = google_compute_address.rke2-lb-ip-masters.address
+      fqdn          = "${google_compute_address.rke2-lb-ip-masters.address}.sslip.io"
     })
   }
 }
@@ -78,7 +80,7 @@ resource "rancher2_cluster_v2" "rke2-cluster" {
 resource "google_compute_instance" "rke2-master" {
   count          = var.master_count
   name           = "${var.name_prefix}-master-${count.index}"
-  machine_type   = "e2-standard-4"
+  machine_type   = var.machine_type
   can_ip_forward = true
   network_interface {
     network    = var.vpc_name
@@ -132,7 +134,7 @@ resource "ssh_resource" "register-master" {
 resource "google_compute_instance" "rke2-worker" {
   count          = var.worker_count
   name           = "${var.name_prefix}-worker-${count.index}"
-  machine_type   = "e2-standard-4"
+  machine_type   = var.machine_type
   can_ip_forward = true
 
   network_interface {
@@ -193,6 +195,6 @@ resource "ssh_resource" "retrieve_kubeconfig" {
   user        = var.username
   private_key = var.ssh_private_key
   commands = [
-    "sudo sed \"s/127.0.0.1/${google_compute_address.rke2-lb-ip.address}/g\" /etc/rancher/rke2/rke2.yaml"
+    "sudo sed \"s/127.0.0.1/${google_compute_address.rke2-lb-ip-masters.address}/g\" /etc/rancher/rke2/rke2.yaml"
   ]
 }

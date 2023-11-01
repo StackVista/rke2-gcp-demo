@@ -27,6 +27,10 @@ variable "worker_count" {
   default = 1
 }
 
+variable "machine_type" {
+  default = "e2-standard-2"
+}
+
 variable "username" {
   description = "The username to use for SSH access to the cluster"
 }
@@ -45,11 +49,6 @@ variable "sts_api_key" {
 
 variable "sts_url" {
   description = "The URL for connecting to the StackState Receiver API"
-}
-
-variable "ssh_key_file" {
-  description = "The path to the SSH key file to use for SSH access to the cluster"
-  default     = "~/.ssh/id_rsa.pub"
 }
 
 variable "rancher_server_admin_password" {

@@ -24,3 +24,7 @@ variable "image_project" {
 variable "rancher_tags" {
   default = ["rancher-server"]
 }
+
+variable "machine_type" {
+  default = "e2-standard-2"
+}

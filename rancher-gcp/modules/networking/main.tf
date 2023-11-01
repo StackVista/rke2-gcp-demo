@@ -7,19 +7,6 @@ resource "google_compute_firewall" "allow-k8s-internal" {
     protocol = "all"
   }
 
-  # allow {
-  #   protocol = "icmp"
-  # }
-  # allow {
-  #   protocol = "tcp"
-  #   ports    = ["80", "443", "6443", "8443", "9345", "10250", "10251", "10252", "10254"]
-  # }
-
-  # allow {
-  #   protocol = "udp"
-  #   ports    = ["8472"]
-  # }
-
   source_tags = ["rke2-master", "rke2-worker", "rancher-master"]
 }
 
@@ -33,6 +20,19 @@ resource "google_compute_firewall" "allow-k8s" {
   }
   source_ranges = var.home_ips
   target_tags   = var.master_tags
+}
+
+// TODO find a better source_range, this should only allow traffic from within the VPC or the cluster.
+resource "google_compute_firewall" "allow-http" {
+  name    = "${var.name_prefix}-allow-http"
+  network = var.vpc_name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "443"]
+  }
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = var.node_tags
 }
 
 # Create a firewall to allow SSH connection from the specified source range

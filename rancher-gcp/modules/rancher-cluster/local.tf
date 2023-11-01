@@ -4,6 +4,7 @@ locals {
 }
 
 resource "local_file" "kube_config_server_yaml" {
-  filename = format("%s/%s-%s", path.root, var.name_prefix, "rancher_kubeconfig.yaml")
-  content  = ssh_resource.retrieve_config.result
+  filename        = format("%s/%s-%s", path.root, var.name_prefix, "rancher_kubeconfig.yaml")
+  content         = ssh_resource.retrieve_config.result
+  file_permission = "0600"
 }

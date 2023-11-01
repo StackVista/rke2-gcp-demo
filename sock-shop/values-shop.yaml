@@ -1,0 +1,54 @@
+all:
+  securityCapabilitiesDisabled: true
+priority: 50
+loadgen:
+  enabled: true
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+catalogue:
+  demoScenarioSimulation:
+    enabled: true
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+shipping:
+  enabled: false
+payment:
+  enabled: false
+orders:
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+  components:
+    shippingHost:
+    paymentHost:
+  image:
+    # orders.image.repository -- The container repository for `orders` images.
+    repository: quay.io/stackstate/weaveworksdemo-orders
+    # orders.image.tag -- The container image tag.
+    tag: 1aafed74
+cartsDB:
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+carts:
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+catalogueDB:
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+frontend:
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+ingress:
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+sessionDB:
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+ordersDB:
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+userDB:
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled
+user:
+  annotations:
+    http-header-injector.stackstate.io/inject: enabled

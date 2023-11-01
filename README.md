@@ -18,10 +18,9 @@ gcp_region="<GCP REGION>" # optional, default is europe-west4
 gcp_zone="<GCP ZONE>" # optional, default is europe-west4-a
 username="<SSH USERNAME>"
 iam_user="<GOOGLE ACCOUNT>"
-home_ip="<YOUR HOME IP>"
+home_ips=["<YOUR HOME IP1>", "<YOUR HOME IP2>", ...]
 sts_api_key="<API KEY>"
 sts_url="<STS URL>"
-ssh_key_file="<PATH TO SSH PUBLICKEY FILE>" # optional, default is ~/.ssh/id_rsa.pub
 ```
 
 ### Provision Cluster
@@ -62,10 +61,15 @@ rke2-cluster-0-master-0   Ready    control-plane,etcd,master   102m   v1.26.9+rk
 
 TODO
 
-### Deploy the StackState Agent
+### Install the demo app
 
-Create one or more Kubernetes StackPack instances named like the cluster(s) provisioned.
-Run `task deploy-stackstate-agent`
+Ensure you've run the `task terraform-output` command so that the `.provisioned_env` file is up-to-date. After that execute the following:
+
+```bash
+> task deploy-sock-shop
+```
+
+This will deploy the sock-shop over the 2 clusters with ingresses setup.
 
 ## Destroy the cluster
 
