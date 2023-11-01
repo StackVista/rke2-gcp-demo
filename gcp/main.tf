@@ -25,7 +25,7 @@ resource "google_project_iam_member" "project1" {
 }
 
 resource "google_compute_firewall" "k8s-internal" {
-  name    = "allow-k8s-internal"
+  name    = "${var.name_prefix}-allow-k8s-internal"
   network = module.rke2-vpc.vpc_name
 
   allow {
@@ -34,7 +34,7 @@ resource "google_compute_firewall" "k8s-internal" {
 
   allow {
     protocol = "tcp"
-    ports    = ["6443", "9345", "10250", "10251", "10252", "10254"]
+    ports    = ["6443", "8443", "9345", "10250", "10251", "10252", "10254"]
   }
 
   allow {
@@ -46,7 +46,7 @@ resource "google_compute_firewall" "k8s-internal" {
 }
 
 resource "google_compute_firewall" "k8s-rules" {
-  name    = "allow-k8s"
+  name    = "${var.name_prefix}-allow-k8s"
   network = module.rke2-vpc.vpc_name
 
   allow {
@@ -59,7 +59,7 @@ resource "google_compute_firewall" "k8s-rules" {
 
 # Create a firewall to allow SSH connection from the specified source range
 resource "google_compute_firewall" "ssh-rules" {
-  name    = "allow-ssh"
+  name    = "${var.name_prefix}-allow-ssh"
   network = module.rke2-vpc.vpc_name
 
   allow {
@@ -68,4 +68,32 @@ resource "google_compute_firewall" "ssh-rules" {
   }
   source_ranges = ["35.235.240.0/20", var.home_ip]
   target_tags   = ["rke2-node"]
+}
+
+resource "google_compute_firewall" "allow-dns" {
+  name    = "${var.name_prefix}-allow-dns"
+  network = module.rke2-vpc.vpc_name
+
+  source_ranges = ["0.0.0.0"]
+
+  allow {
+    protocol = "tcp"
+    ports    = ["53", "443"]
+  }
+
+  allow {
+    protocol = "udp"
+    ports    = ["53"]
+  }
+}
+
+resource "google_compute_firewall" "allow-health-check" {
+  name    = "${var.name_prefix}-allow-health-check"
+  network = module.rke2-vpc.vpc_name
+
+  allow {
+    protocol = "tcp"
+  }
+
+  source_ranges = ["209.85.152.0/22", "209.85.204.0/22", "35.191.0.0/16"]
 }

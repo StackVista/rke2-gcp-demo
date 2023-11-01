@@ -6,7 +6,7 @@ resource "google_compute_network" "gcp-vpc" {
 # Create a Subnet
 resource "google_compute_subnetwork" "gcp-subnet" {
   name          = "${var.name_prefix}-subnet"
-  ip_cidr_range = "10.10.0.0/16"
+  ip_cidr_range = "10.10.0.0/24"
   network       = google_compute_network.gcp-vpc.name
   region        = var.region
 }
