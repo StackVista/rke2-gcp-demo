@@ -9,7 +9,7 @@ catalogue:
   demoScenarioSimulation:
     enabled: true
   annotations:
-    http-header-injector.stackstate.io/inject: enabled
+    http-header-injector.stackstate.io/inject: disabled
 shipping:
   enabled: false
 payment:
@@ -33,7 +33,7 @@ carts:
     http-header-injector.stackstate.io/inject: enabled
 catalogueDB:
   annotations:
-    http-header-injector.stackstate.io/inject: enabled
+    http-header-injector.stackstate.io/inject: disabled
 frontend:
   annotations:
     http-header-injector.stackstate.io/inject: enabled

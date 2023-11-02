@@ -39,7 +39,7 @@ resource "google_compute_forwarding_rule" "rke2-lb-workers" {
   name        = "${var.name_prefix}-loadbalancer-workers"
   ip_address  = google_compute_address.rke2-lb-ip-workers.address
   target      = google_compute_target_pool.rke2-workers.self_link
-  port_range  = "80-443"
+  port_range  = "80-65535"
   ip_protocol = "TCP"
 }
 
