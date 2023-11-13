@@ -53,3 +53,7 @@ worker:
 
 podSecurityContext:
   runAsUser: 1000
+
+service:
+  annotations:
+    monitor.kubernetes-v2.stackstate.io/http-response-time: "{ \"deviatingThreshold\": \"30\", \"criticalThreshold\": \"30\" }"

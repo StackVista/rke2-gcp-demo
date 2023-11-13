@@ -62,5 +62,11 @@ tasks:
     cmds:
       - helm upgrade --install --kubeconfig {{.DIR}}/{{.CLUSTER_1}}_kubeconfig.yaml --namespace sock-shop --create-namespace --values sock-shop/values-fulfillment.yaml --set-string 'payment.ingress.hostname'='payment.{{.PUBLIC_IP_1}}.sslip.io'  --set-string 'shipping.ingress.hostname'='shipping.{{.PUBLIC_IP_1}}.sslip.io' sock-shop stackstate-internal/sock-shop
       - helm upgrade --install --kubeconfig {{.DIR}}/{{.CLUSTER_0}}_kubeconfig.yaml --namespace sock-shop --create-namespace --values sock-shop/values-shop.yaml --set-string 'orders.components.paymentHost'='payment.{{.PUBLIC_IP_1}}.sslip.io'  --set-string 'orders.components.shippingHost'='shipping.{{.PUBLIC_IP_1}}.sslip.io' sock-shop stackstate-internal/sock-shop
+      - task deploy-locust
+  deploy-locust:
+    vars:
+      CLUSTER_0:
+        sh: "cat .provisioned_env.json | jq -r '.\"rke2-clusters\".value[0].cluster_name'"
+    cmds:
       - kubectl apply --kubeconfig {{.DIR}}/{{.CLUSTER_0}}_kubeconfig.yaml -f sock-shop/locust-config.yaml
       - helm upgrade --kubeconfig {{.DIR}}/{{.CLUSTER_0}}_kubeconfig.yaml --install -n sock-shop --values sock-shop/locust-values.yaml --version 0.31.1 locust deliveryhero/locust
