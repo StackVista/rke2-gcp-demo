@@ -29,5 +29,9 @@ variable "ssh_private_key" {
 variable "rancher_kubernetes_version" {
   type        = string
   description = "Kubernetes version to use for Rancher server cluster"
-  default     = "v1.24.14+k3s1"
+  default     = "v1.26.10+k3s2"
+}
+
+variable "machine_type" {
+  default = "n1-standard-2"
 }

@@ -33,7 +33,7 @@ resource "google_compute_firewall" "rancher-allow-internal" {
 # GCP Compute Instance for creating a single node RKE cluster and installing the Rancher server
 resource "google_compute_instance" "rancher_server" {
   name           = "${var.name_prefix}-rancher-server"
-  machine_type   = "n1-standard-2"
+  machine_type   = var.machine_type
   can_ip_forward = true
 
   boot_disk {

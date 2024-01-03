@@ -25,6 +25,7 @@ module "rancher-cluster" {
   ssh_key         = tls_private_key.ssh_key.public_key_openssh
   ssh_private_key = tls_private_key.ssh_key.private_key_pem
   home_ips        = var.home_ips
+  machine_type    = "e2-standard-4"
 }
 
 module "rancher-deploy" {
@@ -62,6 +63,32 @@ module "rke2-stackstate" {
   sts_url          = var.sts_url
   sts_cluster_name = module.rke2-cluster[count.index].cluster_name
   rke2_cluster_id  = module.rke2-cluster[count.index].rke2_cluster_id
+  providers = {
+    rancher2 = rancher2.admin
+  }
+}
+module "otel-cluster" {
+  source          = "./modules/rke2-cluster"
+  name_prefix     = "${var.name_prefix}-otel-cluster"
+  vpc_name        = module.rke2-vpc.vpc_name
+  subnetwork_name = module.rke2-vpc.subnetwork_name
+  master_count    = var.master_count
+  worker_count    = var.worker_count
+  ssh_key         = tls_private_key.ssh_key.public_key_openssh
+  ssh_private_key = tls_private_key.ssh_key.private_key_pem
+  username        = var.username
+  machine_type    = "e2-standard-4"
+  providers = {
+    rancher2 = rancher2.admin
+  }
+}
+
+module "otel-stackstate" {
+  source           = "./modules/rke2-stackstate"
+  sts_api_key      = var.sts_api_key
+  sts_url          = var.sts_url
+  sts_cluster_name = module.otel-cluster.cluster_name
+  rke2_cluster_id  = module.otel-cluster.rke2_cluster_id
   providers = {
     rancher2 = rancher2.admin
   }

@@ -2,7 +2,7 @@ stackstate:
   apiKey: ${sts_api_key}
   cluster:
     name: ${sts_cluster_name}
-  url: ${sts_url}/receiver/stsAgent
+  url: ${sts_url}
 logsAgent:
   enabled: true
 nodeAgent:

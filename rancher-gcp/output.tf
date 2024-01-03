@@ -12,6 +12,10 @@ output "rke2-clusters" {
   sensitive = true
 }
 
+output "otel-cluster" {
+  value     = module.otel-cluster
+  sensitive = true
+}
 output "rancher-url" {
   value = local.rancher_url
 }

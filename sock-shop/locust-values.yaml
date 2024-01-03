@@ -56,4 +56,8 @@ podSecurityContext:
 
 service:
   annotations:
-    monitor.kubernetes-v2.stackstate.io/http-response-time: "{ \"deviatingThreshold\": \"30\", \"criticalThreshold\": \"30\" }"
+    monitor.kubernetes-v2.stackstate.io/http-response-time: |
+      {
+        "deviatingThreshold": "30",
+        "criticalThreshold": "30"
+      }

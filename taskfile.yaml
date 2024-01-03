@@ -31,12 +31,12 @@ tasks:
   kubeconfig:
     cmds:
       - kubectl config set-credentials {{.CLUSTER}}-user --client-certificate=<(cat {{.DIR}}/{{.CLUSTER}}_kubeconfig.yaml | {{.YQ_UCCD}} | {{.B64_DECODE}}) --client-key=<(cat {{.DIR}}/{{.CLUSTER}}_kubeconfig.yaml | {{.YQ_UCKD}} | {{.B64_DECODE}}) --embed-certs=true
-      - kubectl config set-cluster {{.CLUSTER}} --server=<(cat {{.DIR}}/{{.CLUSTER}}_kubeconfig.yaml | {{.YQ_CSERVER}}) --certificate-authority=<(cat {{.DIR}}/{{.CLUSTER}}_kubeconfig.yaml | {{.YQ_CA}} | {{.B64_DECODE}}) --embed-certs=true
+      - kubectl config set-cluster {{.CLUSTER}} --server=$(cat {{.DIR}}/{{.CLUSTER}}_kubeconfig.yaml | {{.YQ_CSERVER}}) --certificate-authority=<(cat {{.DIR}}/{{.CLUSTER}}_kubeconfig.yaml | {{.YQ_CA}} | {{.B64_DECODE}}) --embed-certs=true
       - kubectl config set-context {{.CLUSTER}} --cluster={{.CLUSTER}} --user={{.CLUSTER}}-user
   all-kubeconfig:
     vars:
       CLUSTERS:
-        sh: "cat .provisioned_env.json | jq -r '.\"rke2-clusters\".value[].cluster_name, .\"rancher-cluster\".value.cluster_name' | tr '\n' ' '"
+        sh: "cat .provisioned_env.json | jq -r '.\"rke2-clusters\".value[].cluster_name, .\"rancher-cluster\".value.cluster_name, .\"otel-cluster\".value.cluster_name' | tr '\n' ' '"
     cmds:
       - for: { var: CLUSTERS }
         task: kubeconfig
@@ -46,8 +46,8 @@ tasks:
   helm-repo-add:
     internal: true
     cmds:
-      - helm repo add stackstate-internal https://stackstate.github.io/helm-charts
-      - helm repo add deliveryhero https://charts.deliveryhero.io/
+      - helm repo add --force-update stackstate-internal https://helm-internal.stackstate.io/
+      - helm repo add --force-update deliveryhero https://charts.deliveryhero.io/
       - helm repo update
   deploy-sock-shop:
     deps:
